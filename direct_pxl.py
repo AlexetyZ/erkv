@@ -1,14 +1,16 @@
+import re
 from typing import Type, TypeVar
 from pathlib import Path
 from erknm.pxl import Exel_work
+import os
 import openpyxl
-from openpyxl.styles import PatternFill
+from openpyxl.styles import Font, Color, PatternFill
 
 
 Workbook = TypeVar('Workbook', bound=openpyxl.Workbook)
 
 class Operation:
-    def __init__(self, wb_path: str = 'Новый документ.xlsx', init_sh: bool = True):
+    def __init__(self, wb_path: str = 'Новый документ.xlsx', init_sh: bool = True, sh_index: int = 0, sh_name: str = 'Лист0'):
         """
         :param wb_path: путь до файла, в котором итерируются ячейки
         :param init_sh: нужно ли инициировать первый лист книги. По умолчанию True. Необходимо для ситуаций,
@@ -21,7 +23,10 @@ class Operation:
         else:
             self.wb = openpyxl.load_workbook(wb_path)
         if init_sh is True:
-            self.sh = self.wb.worksheets[0]
+            if sh_name != 'Лист0':
+                self.sh = self.wb[sh_name]
+            else:
+                self.sh = self.wb.worksheets[sh_index]
 
 
     def get_list_from_sh_column(self, *columns: str, start_from_row: int = 1, reference_column: str = 'A',
@@ -71,6 +76,12 @@ class Operation:
     def get_cell_value(self, row: int, column: int):
         return self.sh.cell(row=row, column=column).value
 
+    def detect_last_row(self):
+        return self.sh.max_row + 1
+
+    def detect_last_column(self):
+        return self.sh.max_column + 1
+
     def change_value_in_cell(self, row: int, column: int, value, number_format: str = 'no', saving: bool = True):
         if number_format != 'no':
             self.sh.cell(row=row, column=column).number_format = number_format
@@ -87,8 +98,7 @@ class Operation:
     def save_document(self, workbook: Type[Workbook] or bool = False, path: str or bool = False):
         if path is False:
             path = self.wb_path
-        else:
-            path += '.xlsx'
+
         if workbook is False:
             workbook = self.wb
         workbook.save(path)
